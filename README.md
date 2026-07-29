@@ -53,59 +53,35 @@ With a user-friendly Gradio web frontend, users can fine-tune generation paramet
 
 The system is built with a clean separation of concerns across configuration, model loading, pipeline execution, utility functions, and the presentation layer.
 
-
 ```mermaid
 flowchart TD
-    subgraph UI["User Interface Layer (app.py)"]
-        A[Gradio Web Interface]
-        B[Text-to-Image Handler]
-        C[Image-to-Image Handler]
+    subgraph UI ["User Interface Layer (app.py)"]
+        A[Gradio Web Interface] -->|Text Prompts & Settings| B[Text-to-Image Handler]
+        A -->|Image + Prompt + Strength| C[Image-to-Image Handler]
     end
 
-    subgraph Core["Core Generation Engine (image_generator.py)"]
-        D[ImageGenerator Engine]
+    subgraph Core ["Core Generation Engine (image_generator.py)"]
+        B --> D[ImageGenerator Engine]
+        C --> D
+        D -->|Fetch Config| E[Config Manager (config.py)]
     end
 
-    subgraph Config["Configuration (config.py)"]
-        E[Config Manager]
+    subgraph Model ["Model Management Layer (model_loader.py)"]
+        D -->|Request Pipeline| F[ModelLoader]
+        F -->|Load Weights & Optimizations| G[Diffusers Pipeline]
+        G -->|DPM-Solver / FP16 / Offload| H[(Stable Diffusion Model)]
     end
 
-    subgraph Model["Model Management Layer (model_loader.py)"]
-        F[ModelLoader]
-        G[Diffusers Pipeline]
-        H[(Stable Diffusion Model)]
+    subgraph Execution ["Hardware & Execution"]
+        G -->|CUDA Autocast / CPU| I[PyTorch Engine]
     end
 
-    subgraph Hardware["Hardware & Execution"]
-        I[PyTorch Engine]
-        J[CUDA GPU / CPU]
+    subgraph Output ["Persistence & Utilities (utils.py)"]
+        I -->|Generated PIL Images| J[Image Saver / Metadata Logger]
+        J -->|Save Images & JSON| K[(generated_images/)]
+        J -->|Display Results| A
     end
-
-    subgraph Utils["Utilities (utils.py)"]
-        K[Image Processing Utils]
-        L[Metadata Manager]
-    end
-
-    subgraph Output["Output & Storage"]
-        M[Image Saver]
-        N[(generated_images/)]
-    end
-
-    A --> B
-    A --> C
-    B --> D
-    C --> D
-    D --> E
-    D --> F
-    D --> K
-    F --> G
-    G --> H
-    G --> I
-    I --> J
-    K --> L
-    D --> M
-    M --> N
-    D --> A
+```
 
 ### Detailed Execution Flow
 
