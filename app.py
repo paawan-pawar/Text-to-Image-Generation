@@ -308,7 +308,7 @@ def create_interface():
         gr.Markdown(
             """
             ---
-            Built with ❤️ using Stable Diffusion and Gradio
+            ~By Paawan Pawar
             """
         )
     
