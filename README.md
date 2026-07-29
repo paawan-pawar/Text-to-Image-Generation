@@ -51,37 +51,115 @@ With a user-friendly Gradio web frontend, users can fine-tune generation paramet
 
 ## 🏗️ System Architecture & Flow
 
-The system is built with a clean separation of concerns across configuration, model loading, pipeline execution, utility functions, and the presentation layer.
+The system follows a modular, layered architecture with clear separation of concerns:
 
 ```mermaid
-flowchart TD
-    subgraph UI ["User Interface Layer (app.py)"]
-        A[Gradio Web Interface] -->|Text Prompts & Settings| B[Text-to-Image Handler]
-        A -->|Image + Prompt + Strength| C[Image-to-Image Handler]
+flowchart TB
+    subgraph UI["🖥️ Presentation Layer (app.py)"]
+        A[Gradio Web Interface]
+        A1[Text Input & Parameters]
+        A2[Image Upload & Settings]
+        A3[Gallery Display]
+        A4[File Download]
     end
 
-    subgraph Core ["Core Generation Engine (image_generator.py)"]
-        B --> D[ImageGenerator Engine]
-        C --> D
-        D -->|Fetch Config| E[Config Manager (config.py)]
+    subgraph Core["⚙️ Core Business Logic (image_generator.py)"]
+        B[ImageGenerator Engine]
+        B1[generate_from_text]
+        B2[generate_from_image]
+        B3[Parameter Validation]
+        B4[Image Post-Processing]
     end
 
-    subgraph Model ["Model Management Layer (model_loader.py)"]
-        D -->|Request Pipeline| F[ModelLoader]
-        F -->|Load Weights & Optimizations| G[Diffusers Pipeline]
-        G -->|DPM-Solver / FP16 / Offload| H[(Stable Diffusion Model)]
+    subgraph Model["🧠 Model Management (model_loader.py)"]
+        C[ModelLoader]
+        C1[load_model]
+        C2[load_img2img]
+        C3[Pipeline Configuration]
+        C4[Optimization Setup]
     end
 
-    subgraph Execution ["Hardware & Execution"]
-        G -->|CUDA Autocast / CPU| I[PyTorch Engine]
+    subgraph Config["📋 Configuration (config.py)"]
+        D[ModelConfig]
+        D1[Model Selection]
+        D2[Generation Parameters]
+        D3[Performance Settings]
+        D4[Device Management]
     end
 
-    subgraph Output ["Persistence & Utilities (utils.py)"]
-        I -->|Generated PIL Images| J[Image Saver / Metadata Logger]
-        J -->|Save Images & JSON| K[(generated_images/)]
-        J -->|Display Results| A
+    subgraph Utils["🔧 Utilities (utils.py)"]
+        E[Utility Functions]
+        E1[add_watermark]
+        E2[save_metadata]
+        E3[create_image_grid]
+        E4[load_metadata]
     end
-```
+
+    subgraph Diffusers["🔄 Diffusers Pipeline"]
+        F[StableDiffusionPipeline]
+        F1[VAE Encoder/Decoder]
+        F2[UNet Denoiser]
+        F3[CLIP Text Encoder]
+        F4[Scheduler DPM-Solver]
+    end
+
+    subgraph Hardware["💻 Hardware Layer"]
+        G[PyTorch Engine]
+        G1[CUDA GPU]
+        G2[CPU Fallback]
+        G3[AMP Mixed Precision]
+        G4[xFormers Attention]
+    end
+
+    subgraph Storage["💾 Storage Layer"]
+        H[File System]
+        H1[generated_images/]
+        H2[Image Files .png]
+        H3[Metadata .json]
+    end
+
+    %% Connections
+    A -->|User Input| A1
+    A -->|Upload Image| A2
+    A1 -->|Parameters| B
+    A2 -->|Image Data| B
+    
+    B -->|Check Config| D
+    B -->|Load Pipeline| C
+    B -->|Use Utilities| E
+    
+    C -->|Initialize| F
+    C -->|Configure| D
+    
+    F -->|Run Inference| G
+    F -->|Generate| B
+    
+    G -->|GPU Acceleration| G1
+    G -->|Fallback| G2
+    G1 -->|FP16| G3
+    G1 -->|Efficient Attention| G4
+    
+    B -->|Save Results| H
+    B -->|Return Images| A3
+    H -->|Store Files| H1
+    
+    E -->|Add Watermark| B4
+    E -->|Save Metadata| H3
+    E -->|Create Gallery| A3
+    
+    H1 -->|Display| A4
+    H3 -->|Load Metadata| E4
+
+    %% Styling
+    classDef ui fill:#f9f,stroke:#333,stroke-width:2px
+    classDef core fill:#bbf,stroke:#333,stroke-width:2px
+    classDef model fill:#bfb,stroke:#333,stroke-width:2px
+    classDef storage fill:#fbf,stroke:#333,stroke-width:2px
+    
+    class A,A1,A2,A3,A4 ui
+    class B,B1,B2,B3,B4 core
+    class C,C1,C2,C3,C4 model
+    class H,H1,H2,H3 storage
 
 ### Detailed Execution Flow
 
