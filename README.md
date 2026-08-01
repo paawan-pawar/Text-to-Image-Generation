@@ -55,45 +55,20 @@ The application is organized around a lightweight UI layer, a generation orchest
 
 ```mermaid
 flowchart LR
-    subgraph UI["User Interface Layer (app.py)"]
-        A[Gradio Blocks UI]
-        B[generate_images()]
-        C[generate_from_image()]
-        A --> B
-        A --> C
-    end
+    A["Gradio UI"] --> B["Generate Images"]
+    A --> C["Generate from Image"]
 
-    subgraph ORCH["Generation Orchestrator (image_generator.py)"]
-        D[ImageGenerator]
-        E[initialize()]
-        F[generate_from_text()]
-        G[generate_from_image()]
-        B --> D
-        C --> D
-        D --> E
-        D --> F
-        D --> G
-    end
+    B --> D["ImageGenerator"]
+    C --> D
 
-    subgraph MODEL["Configuration & Model Layer"]
-        H[config.py]
-        I[ModelLoader]
-        J[Stable Diffusion Pipeline]
-        D --> H
-        D --> I
-        I --> J
-    end
+    D --> E["Config"]
+    D --> F["ModelLoader"]
+    F --> G["Stable Diffusion Pipeline"]
 
-    subgraph OUTPUT["Execution & Output"]
-        K[PyTorch / Diffusers Runtime]
-        L[generated_images/]
-        M[Gradio Gallery & File Outputs]
-        J --> K
-        F --> L
-        G --> L
-        L --> M
-        K --> M
-    end
+    G --> H["PyTorch / Diffusers Runtime"]
+    D --> I["generated_images/"]
+    H --> J["Gradio Gallery and Files"]
+    I --> J
 ```
 
 ### Detailed Execution Flow
