@@ -51,45 +51,58 @@ With a user-friendly Gradio web frontend, users can fine-tune generation paramet
 
 ## 🏗️ System Architecture & Flow
 
-The system is built with a clean separation of concerns across configuration, model loading, pipeline execution, utility functions, and the presentation layer.
+The application is organized around a lightweight UI layer, a generation orchestrator, a model-loading layer, and an output persistence layer.
 
 ```mermaid
-flowchart TD
-    subgraph UI ["User Interface Layer (app.py)"]
-        A[Gradio Web Interface] -->|Text Prompts & Settings| B[Text-to-Image Handler]
-        A -->|Image + Prompt + Strength| C[Image-to-Image Handler]
+flowchart LR
+    subgraph UI["User Interface Layer (app.py)"]
+        A[Gradio Blocks UI]
+        B[generate_images()]
+        C[generate_from_image()]
+        A --> B
+        A --> C
     end
 
-    subgraph Core ["Core Generation Engine (image_generator.py)"]
-        B --> D[ImageGenerator Engine]
+    subgraph ORCH["Generation Orchestrator (image_generator.py)"]
+        D[ImageGenerator]
+        E[initialize()]
+        F[generate_from_text()]
+        G[generate_from_image()]
+        B --> D
         C --> D
-        D -->|Fetch Config| E[Config Manager (config.py)]
+        D --> E
+        D --> F
+        D --> G
     end
 
-    subgraph Model ["Model Management Layer (model_loader.py)"]
-        D -->|Request Pipeline| F[ModelLoader]
-        F -->|Load Weights & Optimizations| G[Diffusers Pipeline]
-        G -->|DPM-Solver / FP16 / Offload| H[(Stable Diffusion Model)]
+    subgraph MODEL["Configuration & Model Layer"]
+        H[config.py]
+        I[ModelLoader]
+        J[Stable Diffusion Pipeline]
+        D --> H
+        D --> I
+        I --> J
     end
 
-    subgraph Execution ["Hardware & Execution"]
-        G -->|CUDA Autocast / CPU| I[PyTorch Engine]
-    end
-
-    subgraph Output ["Persistence & Utilities (utils.py)"]
-        I -->|Generated PIL Images| J[Image Saver / Metadata Logger]
-        J -->|Save Images & JSON| K[(generated_images/)]
-        J -->|Display Results| A
+    subgraph OUTPUT["Execution & Output"]
+        K[PyTorch / Diffusers Runtime]
+        L[generated_images/]
+        M[Gradio Gallery & File Outputs]
+        J --> K
+        F --> L
+        G --> L
+        L --> M
+        K --> M
     end
 ```
 
 ### Detailed Execution Flow
 
-1. **User Interaction**: The user submits prompts or images through the Gradio web dashboard (`app.py`).
-2. **Configuration Resolving**: `ImageGenerator` checks default parameters set in `config.py` and merges user inputs.
-3. **Model Initialization**: `ModelLoader` lazily loads the PyTorch Stable Diffusion pipeline, applies precision casting (FP16 on CUDA), configures the `DPMSolverMultistepScheduler`, and activates VRAM optimization strategies.
-4. **Diffusion Inference**: PyTorch runs the UNet denoising loop with prompt embeddings from CLIP.
-5. **Post-Processing & Storage**: Output images are saved to the `generated_images/` directory with timestamped filenames and JSON metadata. Results display directly in the Gradio Gallery.
+1. **User Interaction**: The user submits prompts or images through the Gradio web dashboard in `app.py`.
+2. **Request Handling**: The `generate_images()` and `generate_from_image()` handlers forward the inputs to `ImageGenerator`.
+3. **Configuration & Model Setup**: `ImageGenerator` reads defaults from `config.py` and delegates model initialization to `ModelLoader`.
+4. **Pipeline Execution**: `ModelLoader` loads the text-to-image or image-to-image pipeline, applies scheduler and memory optimizations, and runs inference with PyTorch and Diffusers.
+5. **Output & Display**: Generated images are saved in the `generated_images/` directory and returned to the Gradio interface for display and download.
 
 ---
 
